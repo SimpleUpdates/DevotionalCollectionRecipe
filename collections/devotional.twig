@@ -1,0 +1,37 @@
+{% set getParamDateFormat = "Y-n-j" %}
+{% set today = "now"|date(getParamDateFormat) %}
+{% set devotionalDate = ( su.request.query.date ) ? su.request.query.date : today %}
+{% set dateFragment = devotionalDate|date("-m-d") %}
+{% set devotional = su.collection( "devotional" ).sort( "date", "desc" ).date("%"~dateFragment).limit(1).find()[0] %}
+{% if not devotional %}{% set devotional = random(su.collection( "devotional" ).limit(50).find()) %}{% endif %}
+{% set displayDate = devotionalDate|date("l, F j, Y") %}
+
+<div class="devotional">
+    <h3>{{ (devotional.title) ? devotional.title : "Devotional for "~displayDate }}</h3>
+    <div class="devotional-date">{{ displayDate }}</div>
+    {% set hasBy = devotional.by.first or devotional.by.last %}
+    {% set hasSource = devotional.source is not empty %}
+    {% if hasBy or hasSource %}
+        {% set byLine = (hasSource) ? "From "~devotional.source : "" %}
+        {% set byIntro = (hasSource) ? " by " : "By " %}
+        {% set byLine = (hasBy) ? byLine~byIntro~devotional.by.first~" "~devotional.by.last : byLine %}
+        <div class="devotional-source">
+            {{ byLine|raw }}
+        </div>
+    {% endif %}
+    <br />
+    <div class="devotional-content">
+        {{ devotional.content|raw|nl2br }}
+    </div>
+    <br />
+    {% set secondsInDay = 60 * 60 * 24 %}
+    {% set previousDate = ( devotionalDate|date("U") - secondsInDay )|date(getParamDateFormat) %}
+    {% set nextDate = ( devotionalDate|date("U") + secondsInDay )|date(getParamDateFormat) %}
+    {% set path = su.request.path|split("?")[0] %}
+    {% set previousUrl = path~"?date="~previousDate %}
+    {% set nextUrl = path~"?date="~nextDate %}
+    <a  data-cke-saved-href="{{ previousUrl }}" href="{{ previousUrl }}">Previous</a>
+    {% if devotionalDate != today %}
+     | <a  data-cke-saved-href="{{ path }}" href="{{ path }}">Today</a> | <a  data-cke-saved-href="{{ nextUrl }}" href="{{ nextUrl }}">Next</a>
+    {% endif %}
+</div>
